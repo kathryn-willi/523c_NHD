@@ -21,7 +21,7 @@ Watersheds are delineated by the USGS using a nested coding system. The highest 
 
 [Figure 2: Schematic of HUC units, taken from the USGS, [<https://nas.er.usgs.gov/hucs.aspx>] ( <https://nas.er.usgs.gov/hucs.aspx>).]
 
-To demonstrate some of the functions included in the nhdplusTools package, we will be exploring Virginia's North Fork (NF) of the Shenandoah River's watershed, which is fully represented within the "02070006" HUC-8.
+To demonstrate some of the functions included in the `nhdplusTools` package, we will be exploring Virginia's North Fork (NF) of the Shenandoah River's watershed, which is fully represented within the "02070006" HUC-8.
 
 ## Necessary packages
 
@@ -78,6 +78,8 @@ nofo_flowlines %>%
     scroll_box(width = '900px', height = '400px')
 ```
 
+A description of all NHD variables in this flowline data table can be found in [this user guide](https://nhdplus.com/NHDPlus/NHDPlusV2_documentation.php#NHDPlusV2%20User%20Guide)... it's big and may take some time to load!
+
 ## Finding USGS gages with `get_nwis()`
 
 Are there any USGS gages in the NF Shenandoah River's watershed? We can find out by using the `get_nwis()` function, which lists all USGS gages within a given area of interest. This AOI can either be a polygon or a point feature; here, we will again use our polygon of the NF's HUC-8 as our AOI.
@@ -90,7 +92,7 @@ mapview(gages) +
   mapview(nofo_watershed)
 ```
 
-... It looks like there are plenty of gages here! However, the get_nwis function also included gages that are not within our watershed of interest; this is because the function automatically selects any gage within 20 kilometers of the AOI. Let's go ahead and remove those gages:
+... It looks like there are plenty of gages here! However, the `get_nwis` function also included gages that are not within our watershed of interest; this is because the function automatically selects any gage within 20 kilometers of the AOI. Let's go ahead and remove those gages:
 
 ```{r}
 gages <- gages %>%
@@ -141,7 +143,7 @@ for(i in 1:nrow(gages)){
 ... and then we use those `comid`'s to join the associated flowline data to them:
 
 ```{r}
-gages <- left_join(gages,distances, by = 'comid')
+gages <- left_join(gages, distances, by = 'comid')
 ```
 
 We now have a field in our gage data table that tells us how far upstream each gage is from the NF's outlet!
@@ -155,7 +157,7 @@ gages %>%
 
 ## Delineating watersheds with `get_UT()`
 
-One method of delineating a watershed for a given point in our flowline network would be to manually work our way upstream along the flowlines, identifying each catchment that is associated with those flowlines as you go. Luckily, nhdplusTools has a function called get_UT() that does most of this work for us. Let's delineate the watershed for the gage "PASSAGE CREEK NEAR BUCKTON, VA" to demonstrate.
+One method of delineating a watershed for a given point in our flowline network would be to manually work our way upstream along the flowlines, identifying each catchment that is associated with those flowlines as you go. Luckily, nhdplusTools has a function called `get_UT()` that does most of this work for us. Let's delineate the watershed for the gage "PASSAGE CREEK NEAR BUCKTON, VA" to demonstrate.
 
 ```{r}
 passage_creek <- filter(gages, station_nm == "PASSAGE CREEK NEAR BUCKTON, VA")
@@ -194,18 +196,18 @@ mapview(passage_creek_flowlines) +
 Zoom in to see where the stream gage falls along its flowline; do you see that the gage is actually a bit upstream of that last catchment's terminal end? To develop a more accurate watershed that does not contain that downstream area, we can use the get_raindrop_trace() and get_split_catchment() functions.
 
 ```{r}
-# Trace the NHDPlus digital elevation model to the nearest downslope  
-# NHD flowline
+# Use the NHDPlus digital elevation model to find the nearest downslope  
+# NHD flowline for any point in space (here, our stream gage)
 trace <- get_raindrop_trace(passage_creek) 
 
 
 # "Snap" our USGS gage to the nearest NHD flowline feature
-snap_point <- sf::st_sfc(sf::st_point(trace$intersection_point[[1]][2:1]), 
+snap_point <- sf::st_sfc(sf::st_point(trace$intersection_point[[1]][1:2]),
                          crs=4326)
 
 # Clip/split our gage's catchment to only include the portion of the
 # catchment upstream of our gage:
-better_termination <- get_split_catchment(snap_point, upstream=F)[2,]
+better_termination <- get_split_catchment(snap_point, upstream = F)[2,]
 ```
 
 Swap this `better_termination` polygon out for the original catchment in our `passage_creek_watershed` feature layer, and *voila*!
@@ -220,11 +222,11 @@ mapview(passage_creek_flowlines) +
   mapview(passage_creek)
 ```
 
-We can also create this exact watershed (though a dissolved version) with one change to our get_split_catchment() code:
+We can also create this exact watershed (though a dissolved version) by setting our `upstream` argument to `TRUE`:
 
 ```{r}
 # upstream = T creates a polygon of the snapped point's entire watershed
-better_termination <- get_split_catchment(snap_point, upstream=T)[2,]
+better_termination <- get_split_catchment(snap_point, upstream = T)[2,]
 
 mapview(passage_creek_flowlines) + 
   mapview(better_termination) + 
@@ -252,7 +254,7 @@ mapview(passage_creek_flowlines) +
 
 ##### Question 1:
 
-Using functoins in `nhdplusTools`, categorize each gage in the the NF River watershed as measuring along the mainstem (i.e., directly on the North Fork of the Shenandoah) or a tributary, without just using the station name to discern which is which. (HINT: What does `get_UM()` do?)
+Using functions in `nhdplusTools`, categorize each gage in the the NF River watershed as measuring along the mainstem (i.e., directly on the North Fork of the Shenandoah) or a tributary, without just using the station name to discern which is which. (HINT: What does `get_UM()` do?)
 
 ```{r}
 mainstem_flowlines <- get_UM(network = nofo_flowlines,
@@ -270,48 +272,86 @@ Find the distance between the “N F SHENANDOAH RIVER AT COOTES STORE, VA” and
 
 ##### Question 3a:
 
-Using the USGS gage "South Platte River Near Kersey, CO" (USGS-06754000)'s watershed as a starting point, create a map that displays only flowline features that represent the Cache la Poudre River's journey as it travels from its start in Rocky Mountain National Park (comid = 2902889), to its confluence with the South Platte River in Greeley Colorado. Also include a shapefile of the Poudre River's watershed on the map. Here's the start of your workflow:
+Using the USGS gage "South Platte River Near Kersey, CO" (USGS-06754000)'s watershed as a starting point, create a `mapview` map that displays flowline features that represent the Cache la Poudre River's journey as it travels from its start in Rocky Mountain National Park (comid = 2902889), to its confluence with the South Platte River in Greeley. Also include a shapefile of the Poudre River's watershed on the map. Here's a starting point for your workflow:
 
 ```{r}
-platte_ws <- get_nldi_basin(list(featureSource = "nwissite", featureID = "USGS-06754000"))
+splatte_ws <- get_nldi_basin(list(featureSource = "nwissite", featureID = "USGS-06754000"))
 
-platte_ws_flowlines <- get_nhdplus(AOI = platte_ws)
+splatte_gages <- get_nwis(AOI = splatte_ws)
+
+
+splatte_ws_flowlines <- get_nhdplus(AOI = splatte_ws,
+                                   realization = "flowline")
+
+splatte_ws_catchments <- get_nhdplus(AOI = splatte_ws,
+                                    realization = "catchment")
 ```
 
-# Poudre:
+# Poudre Answer:
 ```{r}
-poudre <- get_DM(platte_flowlines, comid = 2902889) %>%
+poudre <- get_DM(splatte_ws_flowlines, comid = 2902889) %>%
   get_nhdplus(comid = .) %>%
   filter(!grepl("Platte", gnis_name))
 
 pour_point <- poudre %>%
   dplyr::filter(totdasqkm == max(totdasqkm))
 
-poudre_ws <- get_UT(platte_flowlines, comid = pour_point$comid) %>%
+poudre_ws <- get_UT(splatte_ws_flowlines, comid = pour_point$comid) %>%
   get_nhdplus(comid = ., realization = "catchment") %>%
   summarize()
 ```
 
 ##### Question 3b:
 
-Perform a similar trace from the headwaters of the Big Thompson River (comid = 13546) to its confluence with the South Platte River. Also include a sf feature of the Big Thompson River's watershed.
+Perform a similar trace as what was done in Question 3a, but from the headwaters of the Big Thompson River (comid = 13546) to its confluence with the South Platte River. Also delineate the Big Thompson River's watershed.
 ```{r}
-big_thompson <- get_DD(platte_flowlines, comid = 13546) %>%
-  get_nhdplus(comid = .)
+big_thompson <- get_DM(splatte_ws_flowlines, comid = 13546) %>%
+  get_nhdplus(comid = .) %>%
+  filter(!grepl("Platte", gnis_name))
 
-mapview(big_thompson)
+pour_point <- big_thompson %>%
+  dplyr::filter(totdasqkm == max(totdasqkm))
+
+big_thompson_ws <- get_UT(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "catchment") %>%
+  summarize()
 ```
 
+##### Question 3c: 
 
+Perform a trace to identify the flowlines that make up the St. Vrain River, another major tributary to the South Platte. Also delineate the St. Vrain River's watershed.
+```{r}
+pour_point <- splatte_ws_flowlines %>% filter(grepl("Vrain", gnis_name)) %>%
+  filter(totdasqkm == max(totdasqkm)) 
+
+st_vrain <- get_UM(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "flowline")
+
+st_vrain_ws <- get_UT(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "catchment") %>%
+  summarize()
+```
+
+##### Question 3d:
+Create a new map that displays the Poudre the Big Thompson, and St. Vrain River's mainstem flowlines and their watersheds. Display each river's data in different colors. Which of the three watersheds is the smallest?
+```{r}
+mapview(big_thompson, color = "maroon") + mapview(big_thompson_ws, col.regions = "maroon") +
+mapview(poudre, color = "navy") + mapview(poudre_ws, col.regions= "navy") +
+mapview(st_vrain, color = "orange") + mapview(st_vrain_ws, col.regions = "orange")
+```
+
+##### BONUS: What might cause those "holes" identified in the Poudre's watershed?
 
 ##### Question 4:
 
-Select one of the following HUC-8's and develop an interactive table of gages within its watershed that includes: distance upstream of the HUC-8 outlet, the stream order the gage is located on, and the gage's contributing watershed area.
+Compare river characteristics across the three rivers. 
+
+Select one of the HUC-8s listed below to develop an interactive table listing gages within the HUC-8 as well as the gage's distance upstream of the HUC-8 outlet, the stream order the gage is located on, and the gage's contributing watershed area. 
 
 Upper Oconnee River, GA (03070101); Concord River, MA (01070005); St. Vrain River, CO (10190005); or Crowley Lake, CA (18090102)
 
 ```{r}
-# These HUC-8 have enough data to make this exercise worthwhile/comparable for each student.
+# These HUC-8s have enough data to make this exercise worthwhile/comparable for each student.
 ```
 
 ##### Question 5:
