@@ -1,0 +1,96 @@
+---
+title: "scrap"
+author: "Katie Willi"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Using the USGS gage "South Platte River Near Kersey, CO" (USGS-06754000)'s watershed as a starting point, create a `mapview` map that displays flowline features that represent the Cache la Poudre River's journey as it travels from its start in Rocky Mountain National Park (comid = 2902889), to its confluence with the South Platte River in Greeley. Also include a shapefile of the Poudre River's watershed on the map. Here's a starting point for your workflow:
+
+```{r}
+splatte_ws <- get_nldi_basin(list(featureSource = "nwissite", featureID = "USGS-06754000"))
+
+splatte_gages <- get_nwis(AOI = splatte_ws)
+
+
+splatte_ws_flowlines <- get_nhdplus(AOI = splatte_ws,
+                                   realization = "flowline")
+
+splatte_ws_catchments <- get_nhdplus(AOI = splatte_ws,
+                                    realization = "catchment")
+```
+
+# Poudre Answer:
+```{r}
+poudre <- get_DM(splatte_ws_flowlines, comid = 2902889) %>%
+  get_nhdplus(comid = .) %>%
+  filter(!grepl("Platte", gnis_name))
+
+pour_point <- poudre %>%
+  dplyr::filter(totdasqkm == max(totdasqkm))
+
+poudre_ws <- get_UT(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "catchment") %>%
+  summarize()
+```
+
+##### Question 3b:
+
+Perform a similar trace as what was done in Question 3a, but from the headwaters of the Big Thompson River (comid = 13546) to its confluence with the South Platte River. Also delineate the Big Thompson River's watershed.
+```{r}
+big_thompson <- get_DM(splatte_ws_flowlines, comid = 13546) %>%
+  get_nhdplus(comid = .) %>%
+  filter(!grepl("Platte", gnis_name))
+
+pour_point <- big_thompson %>%
+  dplyr::filter(totdasqkm == max(totdasqkm))
+
+big_thompson_ws <- get_UT(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "catchment") %>%
+  summarize()
+```
+
+##### Question 3c: 
+
+Perform a trace to identify the flowlines that make up the St. Vrain River, another major tributary to the South Platte. Also delineate the St. Vrain River's watershed.
+```{r}
+pour_point <- splatte_ws_flowlines %>% filter(grepl("Vrain", gnis_name)) %>%
+  filter(totdasqkm == max(totdasqkm)) 
+
+st_vrain <- get_UM(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "flowline")
+
+st_vrain_ws <- get_UT(splatte_ws_flowlines, comid = pour_point$comid) %>%
+  get_nhdplus(comid = ., realization = "catchment") %>%
+  summarize()
+```
+
+##### Question 3d:
+Create a new map that displays the Poudre the Big Thompson, and St. Vrain River's mainstem flowlines and their watersheds. Display each river's data in different colors. Which of the three watersheds is the smallest?
+```{r}
+mapview(big_thompson, color = "maroon") + mapview(big_thompson_ws, col.regions = "maroon") +
+mapview(poudre, color = "navy") + mapview(poudre_ws, col.regions= "navy") +
+mapview(st_vrain, color = "orange") + mapview(st_vrain_ws, col.regions = "orange")
+```
+
+##### BONUS: What might cause those "holes" identified in the Poudre's watershed?
+
+##### Question 4:
+
+Compare river characteristics across the three rivers. 
+
+Select one of the HUC-8s listed below to develop an interactive table listing gages within the HUC-8 as well as the gage's distance upstream of the HUC-8 outlet, the stream order the gage is located on, and the gage's contributing watershed area. 
+
+Upper Oconnee River, GA (03070101); Concord River, MA (01070005); St. Vrain River, CO (10190005); or Crowley Lake, CA (18090102)
+
+```{r}
+# These HUC-8s have enough data to make this exercise worthwhile/comparable for each student.
+```
+
+##### Question 5:
+
+Peruse the list of functions in the `nhdplusTools` package index, and try to use **THREE** we haven’t utilized yet in this lesson within your watershed from Question 4.
