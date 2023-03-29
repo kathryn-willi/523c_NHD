@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ## Using `nhdplusTools`
 
-The goal of this assignment is to introduce us to the package `nhdplusTools`. This package allows R users to explore and manipulate the [National Hydrography Dataset (NHD)](https://www.usgs.gov/national-hydrography/national-hydrography-dataset). The NHD is a digital database that represents the United States' water drainage network. Essentially, the database is made up of stream features called flowlines, waterbody polygons (aptly named waterbodies), hydrologically-connected 'chunks' of watersheds called hydrologic unit codes (HUCs, more on that later), and even smaller watershed 'chunks' called catchments. For every flowline, there is a catchment associated with it that represents the drainage area that directly contributes to its surface flow. Flowlines and catchments can be linked up using each flowline's unique `comid` and each catchment's unique `featureid`, which are the same value for related flowlines and catchments. (For whatever reason, they aren't called the same thing in the catchment dataset. 😑 ) Waterbodies can also be linked to the catchment that they are within using their associated `comid`'s.
+The goal of this assignment is to introduce us to the package `nhdplusTools`. This package allows R users to explore and manipulate the [National Hydrography Dataset (NHD)](https://www.usgs.gov/national-hydrography/national-hydrography-dataset). The NHD is a digital database that represents the United States' water drainage network. Essentially, the database is made up of stream features called flowlines, waterbody polygons (aptly named waterbodies), hydrologically-connected 'chunks' of watersheds called hydrologic unit codes (HUCs, more on that later), and even smaller watershed 'chunks' called catchments. For every flowline, there is a catchment associated with it that represents the drainage area that directly contributes to its surface flow. Flowlines and catchments can be linked up using each flowline's unique `comid` and each catchment's unique `featureid`, which are the same value for related flowlines and catchments. (For whatever reason, they aren't called the same thing in the catchment dataset. 😑) Waterbodies can also be linked to the catchment that they are within using their associated `comid`s.
 
 ![Figure 1: Example of flowlines and catchments in the NHD.](flowlines.jpg)
 
@@ -19,13 +19,13 @@ The goal of this assignment is to introduce us to the package `nhdplusTools`. Th
 
 Watersheds are delineated by the USGS using a nested coding system. The highest order, HUC-2 (e.g. '01'), divides the US into 21 large watersheds, which are then further divided into HUC-4 units (e.g., '0102', '0103'), which are then divided into HUC-6 units, etc. etc. It is important to remember that not all HUCs are true watersheds!
 
-[![Figure 2: Schematic of HUC units, taken from the USGS (<https://nas.er.usgs.gov/hucs.aspx>).](hucs.jpg)](https://nas.er.usgs.gov/hucs.aspx))
+![Figure 2: Schematic of HUC units, taken from the USGS (<https://nas.er.usgs.gov/hucs.aspx>).](hucs.jpg)
 
 To demonstrate some of the functions included in the `nhdplusTools` package, we will be exploring Virginia's North Fork (NF) of the Shenandoah River's watershed, which is fully represented within the "02070006" HUC-8.
 
 ## Necessary packages
 
-Beyond the `tidyverse` will be using `sf` and `mapview` to display geospatial data, and the `nhdplusTools` package to explore the NHD. We will also be using `kableExtra` to make embedded, scrollable data tables.
+Beyond the `tidyverse` we will be using `sf` and `mapview` to display geospatial data, and the `nhdplusTools` package to explore the NHD. We will also be using `kableExtra` to make embedded, scrollable data tables.
 
 ```{r}
 library(tidyverse)
@@ -37,7 +37,7 @@ library(kableExtra)
 
 ## Pulling NHD data
 
-First, let's download all NHD flowline, waterbody, and catchment features found within the NF of the Shenandoah River's watershed. Using the `get_nhdplus()` function in the `nhdplusTools` package, we can download all flowlines and catchments within a chosen area of interest (AOI). `get_waterbodies()` will allow us to download all waterbodies within our AOI. For our example, let's use the watershed's HUC-8 polygon as our AOI using the `get_huc8()` function.
+First, let's download all NHD flowline, waterbody, and catchment features found within the NF of the Shenandoah River's watershed. Using the `get_nhdplus()` function in the `nhdplusTools` package, we can download all flowlines and catchments within a chosen area of interest (AOI). `get_waterbodies()` will allow us to download all waterbodies within our AOI. For our example, we can use the watershed's HUC-8 polygon as our AOI using the `get_huc()` function.
 
 ```{r}
 # Load in a polygon of the HUC-8 of interest. You can also pull 
@@ -105,9 +105,9 @@ mapview(gages) +
   mapview(nofo_watershed)
 ```
 
-## Calculatig distances wtih `get_path_length()`
+## Calculating distances with `get_path_length()`
 
-Let's say we're interested in identifying each gage's distance upstream of the NF's outlet (i.e., the furthest point downstream of our watershed). `get_pathlength()` could help us with this, as it measures the distance between our "pour point" (i.e., the furthest-downstream flowline in a flowline dataset) and all other upstream flowlines included in that dataset. However, for `get_pathlenth()` to work on our flowlines, we first need to add an additional navigation variable to them (`toCOMID`, done with the `get_tocomid()` function), and we need to rename a couple fields:
+Let's say we're interested in identifying each gage's distance upstream of the NF's outlet (i.e., the furthest point downstream of our watershed). `get_pathlength()` could help us with this, as it measures the distance between our "pour point" (i.e., the furthest-downstream flowline in a flowline dataset) and all other upstream flowlines included in that dataset. However, for `get_pathlenth()` to work on our flowlines, we first need to add an additional navigation variable to them (`toCOMID`, done with the `get_tocomid()` function), and we also need to rename a couple fields:
 
 ```{r}
 # The get_pathlenth() function oddly requires a different formatting 
@@ -132,7 +132,7 @@ mapview(nofo_flowlines, zcol = 'distance_km') +
   mapview(gages, col.regions = 'black')
 ```
 
-To interpolate this data to our gages, we will need to first identify which comid each gage is associated with using a `for` loop...
+To interpolate this data to our gages, we will need to first identify which `comid` each gage is associated with using a `for` loop...
 
 ```{r}
 for(i in 1:nrow(gages)){
@@ -158,27 +158,25 @@ gages %>%
 
 ## Delineating watersheds with `get_UT()`
 
-One method of delineating a watershed for a given point in our flowline network would be to manually work our way upstream along the flowlines, identifying each catchment that is associated with those flowlines as you go. Luckily, nhdplusTools has a function called `get_UT()` that does most of this work for us. Let's delineate the watershed for the gage "PASSAGE CREEK NEAR BUCKTON, VA" to demonstrate.
+One method of delineating a watershed for a given point in our flowline network would be to manually work our way upstream along the flowlines, identifying each catchment that is associated with those flowlines as you go. Luckily, `nhdplusTools` has a function called `get_UT()` that does most of this work for us. Let's delineate the watershed for the gage "PASSAGE CREEK NEAR BUCKTON, VA" to demonstrate.
 
 ```{r}
 passage_creek <- filter(gages, station_nm == "PASSAGE CREEK NEAR BUCKTON, VA")
 
-# get_UT() creates a list of all flowlines upstream of the comid of interest ...
+# get_UT() creates a vector of all flowlines upstream of the comid of interest ...
 passage_UT_comids <- get_UT(network = nofo_flowlines, 
-                            comid = passage_creek$comid) %>%
-  as_tibble() %>%
-  rename(comid = value)
+                            comid = passage_creek$comid)
 
 # ... that can be used to select those flowlines from our flowline polylines ...
 passage_creek_flowlines <- filter(nofo_flowlines, 
-                                  comid %in% c(passage_UT_comids$comid)) 
+                                  comid %in% c(passage_UT_comids)) 
 
 # ... or from our catchment polygons
 passage_creek_catchments <- filter(nofo_catchments, 
-                                   featureid %in% c(passage_UT_comids$comid))
+                                   featureid %in% c(passage_UT_comids))
 
 passage_creek_watershed <- passage_creek_catchments %>%
-  # summarize dissolves all sf features into just one sf feature:
+  # `summarize` dissolves all sf features into just one sf feature:
   summarize() 
 ```
 
@@ -234,7 +232,7 @@ mapview(passage_creek_flowlines) +
   mapview(passage_creek)
 ```
 
-## Delineating watersheds for USGS gages with the Network LInked Data Index (NLDI)
+## Delineating watersheds for USGS gages with the Network Linked Data Index (NLDI)
 
 There are also tools in `nhdplusTools` that have already linked up USGS gages to the NHD; this dataset is called the NLDI. For instance, we could actually create a watershed for the Passage Creek gage using the `get_nldi_basin()` function, too.
 
@@ -257,13 +255,7 @@ mapview(passage_creek_flowlines) +
 Using functions in `nhdplusTools`, categorize each gage in the the NF Shenandoah River watershed as measuring along the mainstem (i.e., directly on the North Fork of the Shenandoah) or a tributary, without just using the station name to discern which is which. (HINT: What does `get_UM()` do?)
 
 ```{r}
-mainstem_flowlines <- get_UM(network = nofo_flowlines,
-                             comid = 8441255)
 
-gages_categorized <- gages %>% 
-  mutate(type = ifelse(comid %in% mainstem_flowlines == TRUE,
-                       "Mainstem",
-                       "Tributary")) 
 ```
 
 ### Bonus Question!

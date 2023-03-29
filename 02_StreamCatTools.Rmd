@@ -39,10 +39,11 @@ Let's travel closer to home and explore geospatial data in the Colorado Front Ra
 s_platte_ws <- get_nldi_basin(list(featureSource = "nwissite", featureID = "USGS-06754000"))
 
 s_platte_flowlines <- nhdplusTools::get_nhdplus(AOI = s_platte_ws, 
-                                               realization = "flowline") 
+                                                realization = "flowline") 
 
 s_platte_catchments <- nhdplusTools::get_nhdplus(AOI = s_platte_ws, 
                                                  realization = "catchment") %>%
+  # remove catchments that aren't technically in the watershed
   dplyr::filter(featureid %in% s_platte_flowlines$comid | sf::st_covered_by(., s_platte_ws, sparse = FALSE))
 
 mapview(s_platte_catchments) + mapview(s_platte_ws)
@@ -52,7 +53,7 @@ There are currently 581 geospatial datasets available in StreamCat. Each of thes
 
 ## Loading in StreamCat data
 
-I am curious to see how urbanization, namely the percent of land considered impervious, looks across the watershed; I'm also curious about how it has changed through time. For this we will want to pull in information from the "Mean Imperviousness" National Land Cover Dataset product. We can load specific datasets, summarized over a selected area (i.e., catchment/watershed, riparian corridor/entire land area) for all of our `comid`s within the S. Platte Basin with `sc_get_data()`:
+I am curious to see how urbanization, namely the percent of land considered impervious, looks across the watershed; I'm also curious about how it has changed through time. For this we will want to pull in information from the "Mean Imperviousness" National Land Cover Dataset product. We can load specific datasets, summarized over a selected area (i.e., catchment/watershed, riparian corridor/entire land area) for all of our `comid`s within the South Platte Basin with `sc_get_data()`:
 
 ```{r}
 pctImp <- StreamCatTools::sc_get_data(metric = 'pctImp2001,pctImp2019', 
@@ -99,7 +100,7 @@ St. Vrain River (comid = 2890930)
 
 ### Question 1:
 
-How do these variables compare across the three watersheds? Visualize this data with `mapview()`.
+How do your variables compare across the three watersheds? Visualize this data with `mapview()`.
 
 ```{r}
 
