@@ -252,7 +252,7 @@ mapview(passage_creek_flowlines) +
 
 ### Question 1:
 
-Using functions in `nhdplusTools`, categorize each gage in the the NF Shenandoah River watershed as measuring along the mainstem (i.e., directly on the North Fork of the Shenandoah) or a tributary, without just using the station name to discern which is which. (HINT: What does `get_UM()` do?)
+Using functions in `nhdplusTools`, categorize each gage in the the NF Shenandoah River watershed as measuring along the mainstem (i.e., directly on the North Fork of the Shenandoah) or a tributary, without just using the station name to discern which is which. Turn this data frame into an interactive table. HINT: What does `get_UM()` do?)
 
 ```{r}
 

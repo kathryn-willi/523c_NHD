@@ -255,7 +255,13 @@ mapview(passage_creek_flowlines) +
 Using functions in `nhdplusTools`, categorize each gage in the the NF Shenandoah River watershed as measuring along the mainstem (i.e., directly on the North Fork of the Shenandoah) or a tributary, without just using the station name to discern which is which. (HINT: What does `get_UM()` do?)
 
 ```{r}
+mainstem_flowlines <- get_UM(network = nofo_flowlines,
+                             comid = 8441255)
 
+gages_categorized <- gages %>% 
+  mutate(type = ifelse(comid %in% mainstem_flowlines == TRUE,
+                       "Mainstem",
+                       "Tributary")) 
 ```
 
 ### Bonus Question!
@@ -271,7 +277,34 @@ Using the `dataRetrieval` package and the skills you learned in 523a, get the me
 Find the distance between the "N F SHENANDOAH RIVER AT COOTES STORE, VA" and "N F SHENANDOAH RIVER NEAR STRASBURG, VA" gages using `get_pathlength()`. Then, map the flowlines between the two gages using `mapview()`.
 
 ```{r}
+ds_gage <- filter(gages_categorized, station_nm == "N F SHENANDOAH RIVER NEAR STRASBURG, VA")$comid	
+us_gage <- filter(gages_categorized, station_nm == "N F SHENANDOAH RIVER AT COOTES STORE, VA")$comid
 
+dataset <- get_UM(nofo_flowlines, ds_gage) %>%
+  as_tibble() %>%
+  rename(comid=value)
+
+winnowed_network <- filter(nofo_flowlines, comid %in% dataset$comid) %>%
+  select(-id) %>%
+  get_tocomid(.,add=TRUE) %>%
+  rename(ID=comid,
+         toID=tocomid)
+
+mapview(winnowed_network) + mapview(filter(gages_categorized, type == "Mainstem"))
+
+distance <- get_pathlength(winnowed_network) %>%
+  filter(ID == us_gage)
+
+zwischen <- get_DM(nofo_flowlines, us_gage) %>%
+  as_tibble() %>%
+  rename(comid=value) %>%
+  inner_join(dataset, by="comid")
+
+between <- nofo_flowlines %>%
+  filter(comid %in% zwischen$comid)
+
+# Mapping just the flowlines between the two:
+mapview(between) + mapview(gages_categorized)
 ```
 
 ### Question 3:
