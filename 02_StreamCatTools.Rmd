@@ -51,6 +51,15 @@ mapview(s_platte_catchments) + mapview(s_platte_ws)
 
 There are currently 581 geospatial datasets available in StreamCat. Each of these variables can be summarized (often this means averaged) at the catchment or watershed level. Moreover, you can summarize the data solely along the riparian corridor, which they define as a 50 meter radius around the catchment's associated flowline feature. A complete list of StreamCat variables can be found [here](https://www.epa.gov/national-aquatic-resource-surveys/streamcat-metrics-and-definitions).
 
+**!!! Load in the variable table using `download.file()`: !!!**
+
+```{r}
+download.file("https://java.epa.gov/StreamCAT/metrics/variable_info.csv",
+              destfile = paste0(getwd(), "/StreamCatVars.csv"))
+
+vars <- read_csv("StreamCatVars.csv")
+```
+
 ## Loading in StreamCat data
 
 I am curious to see how urbanization, namely the percent of land considered impervious, looks across the watershed; I'm also curious about how it has changed through time. For this we will want to pull in information from the "Mean Imperviousness" National Land Cover Dataset product. We can load specific datasets, summarized over a selected area (i.e., catchment/watershed, riparian corridor/entire land area) for all of our `comid`s within the South Platte Basin with `sc_get_data()`:
